@@ -14,20 +14,22 @@ fn main() {
     //    todo.print()
     // }
 
+    const HEADER: &str = "Tasky!\n'q' to quit";
+
     // Initialize 'em all.
     let stdout = stdout();
     let mut stdout = stdout.lock().into_raw_mode().unwrap();
     let stdin = stdin();
     let stdin = stdin.lock();
-
+    let mut cursor_index = 2;
     write!(
         stdout,
-        "{}{}{}Tasky! | 'q' will exit.{}{}",
+        "{}{}{}{HEADER}{}{}",
         termion::clear::All,
         termion::cursor::Goto(1, 1),
         termion::style::Bold,
         termion::style::Reset,
-        termion::cursor::Goto(2, 2)
+        termion::cursor::Goto(cursor_index, 2)
     )
     .unwrap();
     stdout.flush().unwrap();
@@ -39,8 +41,9 @@ fn main() {
         match c {
             // Quit
             Key::Char('q') => return,
+            Key::Up => return,
             // Clear the screen
-            Key::Char('c') => write!(stdout, "{}", termion::clear::All),
+            // Key::Char('c') => write!(stdout, "{}", termion::clear::All),
             _ => write!(
                 stdout,
                 "{}{}{:?}",
