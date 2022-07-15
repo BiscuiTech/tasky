@@ -5,14 +5,14 @@ use termion::raw::IntoRawMode;
 mod io;
 mod todo;
 use io::read_data;
-use todo::Todo;
 
 fn main() {
     // call read_data
-    let content = read_data();
+    let todos = read_data();
 
     const HEADER_1: &str = "Tasky!";
     const HEADER_2: &str = "'ctrl+c' to quit";
+    const CURSOR_MINIMUM_INDEX: u16 = 3;
 
     // Initialize 'em all.
     let stdout = stdout();
@@ -20,12 +20,11 @@ fn main() {
     let stdin = stdin();
     let stdin = stdin.lock();
     let mut cursor_index = 3;
-    let todo1 = content[0].getTitle();
-    let todo2 = content[1].getTitle();
-    let ite = content.iter();
+    let payload = todos.get_string_placeholders();
     stdout
         .write_fmt(format_args!(
-            "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}{}{todo1}{}{todo2}",
+            // "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}\x1B[3;1H{todo1}\x1B[4;1H{todo2}",
+            "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}{payload}",
             termion::clear::All,
             termion::cursor::Goto(1, 1),
             termion::style::Bold,
@@ -35,10 +34,6 @@ fn main() {
             termion::style::Underline,
             // HEADER 2
             termion::style::Reset,
-            termion::cursor::Goto(1, 3),
-            // Todo 1
-            termion::cursor::Goto(1, 4),
-            // Todo 1
         ))
         .unwrap();
     stdout.flush().unwrap();
