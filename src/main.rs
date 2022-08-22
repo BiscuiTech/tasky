@@ -12,15 +12,14 @@ fn main() {
 
     const HEADER_1: &str = "Tasky!";
     const HEADER_2: &str = "'ctrl+c' to quit";
-    const CURSOR_MINIMUM_INDEX: u16 = 3;
+    // const CURSOR_MINIMUM_INDEX: u16 = 3;
 
     // Initialize 'em all.
     let stdout = stdout();
     let mut stdout = stdout.lock().into_raw_mode().unwrap();
     let stdin = stdin();
     let stdin = stdin.lock();
-    let mut cursor_index = 3;
-    let payload = todos.get_string_placeholders();
+    let payload = todos.print(1);
     stdout
         .write_fmt(format_args!(
             // "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}\x1B[3;1H{todo1}\x1B[4;1H{todo2}",
@@ -57,7 +56,7 @@ fn main() {
                 stdout,
                 "{}{}{:?}",
                 termion::clear::CurrentLine,
-                termion::cursor::Goto(1, cursor_index),
+                termion::cursor::Goto(1, 5),
                 c
             )
             .unwrap(),

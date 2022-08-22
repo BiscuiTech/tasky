@@ -7,6 +7,9 @@ pub struct Todo {
     completed: bool,
     // id: u32,
 }
+const CHECKED: char = '◉';
+const NOT_CHECKED: char = '◯';
+const ARROW: char = '→';
 
 impl Todo {
     pub fn new(title: String, completed: bool) -> Todo {
@@ -21,16 +24,23 @@ impl Todo {
         string.push_str(&self.title);
         string
     }
-    pub fn print(&self) {
-        let completed = if self.completed { "[X]" } else { "[ ]" };
+    pub fn rename(&mut self, new_title: String) {
+        self.title = new_title;
+    }
+    pub fn print(&self) -> String {
+        let completed = if self.completed { CHECKED } else { NOT_CHECKED };
         let string = completed.to_string() + " " + &self.title + "\n";
-        io::stdout().write_all(string.as_bytes()).unwrap();
+        // io::stdout().write_all(string.as_bytes()).unwrap();
+        return string;
     }
     pub fn toggle(&mut self) {
         self.completed = !self.completed;
     }
-    pub fn rename(&mut self, new_title: String) {
-        self.title = new_title;
+    pub fn set_complete(&mut self) {
+        self.completed = true;
+    }
+    pub fn set_incomplete(&mut self) {
+        self.completed = false;
     }
 }
 
@@ -44,20 +54,25 @@ impl Todos {
     pub fn push(&mut self, todo: Todo) {
         self.todos.push(todo);
     }
-    pub fn get_string_placeholders(&self) -> String {
+    pub fn print(&self, position: u16) -> String {
         let mut y: u16 = 3;
-        const x: u16 = 1;
+        let x: u16 = 1;
         // iterator over todos
         let mut payload = String::new();
-        for todo in &self.todos {
+        for (i, todo) in self.todos.iter().enumerate() {
             // \x1B[{};{}H  replace {} with positionnal arguments
-            let string = "\x1B[{};{}H{}";
+            let string = "\x1B[{};{}H{} {}";
             // append to string
+            let cursor = match usize::from(position) {
+                i => String::from(ARROW),
+                _ => String::new(),
+            };
             payload.push_str(
                 string
                     .replacen("{}", y.to_string().as_str(), 1)
                     .replacen("{}", x.to_string().as_str(), 1)
-                    .replacen("{}", todo.getTitle().as_str(), 1)
+                    .replacen("{}", cursor.as_str(), 1)
+                    .replacen("{}", todo.print().as_str(), 1)
                     .as_str(),
             );
             // increment y
