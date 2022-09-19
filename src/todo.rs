@@ -63,9 +63,9 @@ impl Todos {
             // \x1B[{};{}H  replace {} with positionnal arguments
             let string = "\x1B[{};{}H{} {}";
             // append to string
-            let cursor = match usize::from(position) {
-                i => String::from(ARROW),
-                _ => String::new(),
+            let cursor = match usize::from(position) == i {
+                true => String::from(ARROW),
+                false => String::new(),
             };
             payload.push_str(
                 string

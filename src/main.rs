@@ -1,14 +1,16 @@
+#![feature(fmt_internals)]
+
 use std::io::{stdin, stdout, Write};
-use termion::event::Key;
-use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 mod io;
 mod todo;
-use io::read_data;
+use io::read_todos_file;
+
+use crate::io::read_keyboard;
 
 fn main() {
     // call read_data
-    let todos = read_data();
+    let todos = read_todos_file();
 
     const HEADER_1: &str = "Tasky!";
     const HEADER_2: &str = "'ctrl+c' to quit";
@@ -17,8 +19,7 @@ fn main() {
     // Initialize 'em all.
     let stdout = stdout();
     let mut stdout = stdout.lock().into_raw_mode().unwrap();
-    let stdin = stdin();
-    let stdin = stdin.lock();
+    let mut stdin = stdin().lock();
     let payload = todos.print(1);
     stdout
         .write_fmt(format_args!(
@@ -33,35 +34,14 @@ fn main() {
             termion::style::Underline,
             // HEADER 2
             termion::style::Reset,
+            // payload
         ))
         .unwrap();
+    stdout.write(b"test").unwrap();
     stdout.flush().unwrap();
 
-    let mut keys = stdin.keys();
     loop {
-        let c = keys.next().unwrap().unwrap();
-
-        match c {
-            // Quit
-            Key::Ctrl('c') => return,
-            Key::Up => (),
-            Key::Down => (),
-            Key::Left => (),
-            Key::Right => (),
-            // Enter
-            Key::Char('\n') => (),
-            // Space
-            Key::Char(' ') => (),
-            _ => write!(
-                stdout,
-                "{}{}{:?}",
-                termion::clear::CurrentLine,
-                termion::cursor::Goto(1, 5),
-                c
-            )
-            .unwrap(),
-        }
-
+        read_keyboard(&mut stdin, &mut stdout);
         stdout.flush().unwrap();
     }
 }
