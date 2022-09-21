@@ -1,5 +1,5 @@
-use io::{print_header, print_todos, read_keyboard};
-use std::io::{stdin, stdout, Write};
+use io::{print_header, print_todos, read_keyboard, read_todos_file, CommandInterface};
+use std::io::{stdin, stdout, StdinLock, Write};
 use termion::raw::IntoRawMode;
 
 mod commands;
@@ -9,14 +9,19 @@ mod todo;
 fn main() {
     // Initialize 'em all.
     let mut stdout = stdout().lock().into_raw_mode().unwrap();
-    let mut stdin = stdin().lock();
+    let mut stdin: StdinLock<'static> = stdin().lock();
     let mut cursor: u16 = 0;
-    print_header(&mut stdout);
-    print_todos(&mut stdout, &mut cursor);
-    stdout.flush().unwrap();
+    let todos = read_todos_file();
+    let mut commandInterface = CommandInterface {
+        stdin,
+        stdout,
+        cursor,
+        todos,
+    };
+    print_header(&mut commandInterface);
+    print_todos(&mut commandInterface);
 
     loop {
-        read_keyboard(&mut stdin, &mut stdout, &mut cursor);
-        stdout.flush().unwrap();
+        read_keyboard(&mut commandInterface);
     }
 }

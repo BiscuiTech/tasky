@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub struct Todo {
-    title: String,
-    completed: bool,
+    pub title: String,
+    pub completed: bool,
     // id: u32,
 }
 pub const CHECKED: char = '◉';
@@ -41,12 +41,12 @@ impl Todo {
     }
 }
 
-pub struct Todos {
-    todos: Vec<Todo>,
+pub struct Todos<'a> {
+    pub todos: &'a Vec<Todo>,
 }
-impl Todos {
-    pub fn new() -> Todos {
-        Todos { todos: Vec::new() }
+impl<'a, 'b> Todos<'a> {
+    pub fn new() -> Todos<'a> {
+        Todos { todos: &Vec::new() }
     }
     pub fn get_all(&self) -> Vec<&Todo> {
         self.todos.iter().collect()
@@ -56,9 +56,12 @@ impl Todos {
     }
     pub fn getTodoTitles(&self) -> Vec<String> {
         let mut titles = Vec::new();
-        for todo in &self.todos {
+        for todo in self.todos {
             titles.push(todo.title.clone());
         }
         titles
+    }
+    pub fn delete(&mut self, index: usize) {
+        self.todos.remove(index);
     }
 }

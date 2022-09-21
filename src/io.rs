@@ -1,5 +1,5 @@
 use crate::{
-    commands::{exit, move_down, move_up},
+    commands::{delete, exit, move_down, move_up},
     todo::{Todo, Todos, ARROW},
 };
 use std::{
@@ -58,7 +58,14 @@ impl Default for PrintOptions {
     }
 }
 
-pub fn read_todos_file() -> Todos {
+pub struct CommandInterface {
+    pub stdin: StdinLock<'static>,
+    pub stdout: RawTerminal<StdoutLock<'static>>,
+    pub cursor: u16,
+    pub todos: Todos<'static>,
+}
+
+pub fn read_todos_file() -> Todos<'static> {
     // read file todos.data
     let contents = fs::read_to_string(FILE_NAME).expect("Something went wrong reading the file");
     // split contents into lines
@@ -69,10 +76,10 @@ pub fn read_todos_file() -> Todos {
         // split line into parts
         let parts: Vec<&str> = line.split('|').collect();
         // create new todo
-        let todo = Todo::new(
-            parts[0].to_string(),
-            parts[1].to_string().parse::<bool>().unwrap(),
-        );
+        let todo = Todo {
+            title: parts[0].to_string(),
+            completed: parts[1].parse().unwrap(),
+        };
         // add todo to todos
         todos.push(todo);
     }
@@ -80,28 +87,32 @@ pub fn read_todos_file() -> Todos {
     todos
 }
 
-pub fn read_keyboard(
-    stdin: &mut StdinLock,
-    stdout: &mut RawTerminal<StdoutLock>,
-    cursor: &mut u16,
-) {
-    let mut keys = stdin.keys();
-    let c = keys.next().unwrap().unwrap();
+pub fn save_todos_file(todos: &Todos) {
+    let mut contents = String::new();
+    for todo in todos.todos {
+        contents.push_str(&format!("{}|{}", todo.title, todo.completed));
+    }
+}
+
+pub fn read_keyboard(interface: &mut CommandInterface) {
+    let c = interface.stdin.keys().next().unwrap().unwrap();
 
     match c {
         // Quit
-        Key::Ctrl('c') => exit(stdout),
+        Key::Ctrl('c') => exit(interface),
         // Navigate
-        Key::Up => move_up(stdout, cursor),
-        Key::Down => move_down(stdout, cursor),
+        Key::Up => move_up(interface),
+        Key::Down => move_down(interface),
         Key::Left => (),
         Key::Right => (),
         // Enter
         Key::Char('\n') => (),
         // Space
         Key::Char(' ') => (),
+        Key::Char('x') => delete(interface),
         _ => (),
     };
+    interface.stdout.flush().unwrap();
 }
 
 pub fn print(stdout: &mut RawTerminal<StdoutLock>, text: &str, options: PrintOptions) {
@@ -114,12 +125,12 @@ pub fn print(stdout: &mut RawTerminal<StdoutLock>, text: &str, options: PrintOpt
     .unwrap();
 }
 
-pub fn print_header(stdout: &mut RawTerminal<StdoutLock>) {
+pub fn print_header(interface: &mut CommandInterface) {
     const HEADER_1: &str = "Tasky!";
     const HEADER_2: &str = "'ctrl+c' to quit";
     // "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}\x1B[3;1H{todo1}\x1B[4;1H{todo2}",
     writeln!(
-        stdout,
+        interface.stdout,
         "{}{}{}{HEADER_1}{}{}{}{HEADER_2}{}",
         termion::clear::All,
         termion::cursor::Goto(1, 1),
@@ -134,18 +145,16 @@ pub fn print_header(stdout: &mut RawTerminal<StdoutLock>) {
     .unwrap();
 }
 
-pub fn print_todos(stdout: &mut RawTerminal<StdoutLock>, cursor: &mut u16) {
-    // call read_data
-    let todos = read_todos_file();
+pub fn print_todos(interface: &mut CommandInterface) {
     let mut y: u16 = 3;
     let x: u16 = 1;
     // iterator over todos
     let mut payload = String::new();
-    for (i, todo) in todos.get_all().iter().enumerate() {
+    for (i, todo) in interface.todos.get_all().iter().enumerate() {
         // \x1B[{};{}H  replace {} with positionnal arguments
         let string = "\x1B[{};{}H{} {}";
         // append to string
-        let cursor = match usize::from(*cursor) == i {
+        let cursor = match usize::from(interface.cursor) == i {
             true => String::from(ARROW),
             false => String::from(" "),
         };
@@ -161,7 +170,8 @@ pub fn print_todos(stdout: &mut RawTerminal<StdoutLock>, cursor: &mut u16) {
         y += 1;
     }
 
-    writeln!(stdout, "{payload}").unwrap();
+    writeln!(interface.stdout, "{payload}").unwrap();
+    interface.stdout.flush().unwrap();
 }
 
 /*
